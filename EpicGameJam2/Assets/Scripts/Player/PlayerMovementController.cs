@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using DT.TweakableVariables;
 
 public class PlayerMovementController : MonoBehaviour {
 	public const string HORIZONTAL_AXIS_KEY = "Horizontal";
@@ -8,14 +9,18 @@ public class PlayerMovementController : MonoBehaviour {
 	protected Rigidbody2D _rigidbody;
 	protected Animator _animator;
 	protected Transform _spriteTransforms;
-	protected DT.TweakableFloat _playerSpeed;
+	protected TweakableFloat _playerSpeed;
 	protected float PlayerSpeed {
 		get { return _playerSpeed.Value; }
 	}
 	protected float currentXAxis;
 	
+	public float CurrentRelativeSpeed() {
+		return currentXAxis;
+	}
+	
 	public void Awake() {
-		_playerSpeed = new DT.TweakableFloat("PlayerSpeed", 0.0f, 10.0f, 2.0f);
+		_playerSpeed = new TweakableFloat("pSpeed", 0.0f, 10.0f, 2.0f);
 		_spriteTransforms = transform.Find("Sprites");
 		_rigidbody = GetComponent<Rigidbody2D>();
 		_animator = GetComponent<Animator>();
@@ -24,7 +29,15 @@ public class PlayerMovementController : MonoBehaviour {
 	public void Update() {
 		currentXAxis = Input.GetAxis(HORIZONTAL_AXIS_KEY);
 		
-		_animator.speed = currentXAxis;
+		_animator.SetFloat("SneakingSpeed", currentXAxis);
+		_animator.SetBool("BeingInconspicuous", currentXAxis <= 0.001);
+		
+		AnimatorStateInfo inconspicuousLayerState = _animator.GetCurrentAnimatorStateInfo(1);
+		if (inconspicuousLayerState.IsTag("NoOverride")) {
+			_animator.SetLayerWeight(1, 0);
+		} else {
+			_animator.SetLayerWeight(1, 1);
+		}
 	}
 	
 	public void LateUpdate() {
