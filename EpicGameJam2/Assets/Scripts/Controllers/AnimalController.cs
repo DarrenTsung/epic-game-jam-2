@@ -4,15 +4,24 @@ using System.Collections.Generic;
 using DT.FiniteStateMachine.TweakableVariableExtensions;
 using DT.TweakableVariables;
 
-public class AnimalController : MonoBehaviour {
+public class AnimalController : MonoBehaviour, IGameStateInterface {
+	// PRAGMA MARK - IGAMESTATECONTROLLER INTERFACE
+	void IGameStateInterface.Reset() {
+		Debug.Log("ANIMAL RESETTING");
+		_suspicionLevel = 0.0f;
+		_animator.SetTrigger("Reset");
+		_stateMachine.enabled = true;
+		_stateMachine.ResetWithState(LEANING_STATE_ID);
+	}
+	
 	protected const float DEFAULT_LEANING_MIN_TIME = 2.0f;
 	protected const float DEFAULT_LEANING_MAX_TIME = 6.0f;
 	
 	protected const float DEFAULT_PRELOOK_MIN_TIME = 0.3f;
 	protected const float DEFAULT_PRELOOK_MAX_TIME = 1.0f;
 	
-	protected const float DEFAULT_LOOKING_MIN_TIME = 2.0f;
-	protected const float DEFAULT_LOOKING_MAX_TIME = 6.0f;
+	protected const float DEFAULT_LOOKING_MIN_TIME = 0.3f;
+	protected const float DEFAULT_LOOKING_MAX_TIME = 4.0f;
 	
 	protected const string LEANING_STATE_ID = "animal::leaning";
 	protected const string PRELOOK_STATE_ID = "animal::prelook";
@@ -70,21 +79,37 @@ public class AnimalController : MonoBehaviour {
 		_stateMachine.AddStateChangeAction(HandleStateChange);
 		
 		_stateMachine.SetStartState(LEANING_STATE_ID);
+		
+		// state machine doesn't get enabled until game start 
+		_stateMachine.enabled = false;
 	}
 	
 	protected void Update() {
+		if (GameManager.Instance.CurrentState != GameState.GAME) {
+			return;
+		}
+		
 		if (_stateMachine.CurrentStateId().Equals(LOOKING_STATE_ID)) {
 			float suspicionDelta = Time.deltaTime * _player.CurrentRelativeSpeed() * SuspicionMultiplier;
 			_suspicionLevel += suspicionDelta;
 			
 			_indicatorView.UpdateFill(_suspicionLevel);
 			if (_suspicionLevel >= 1.0f) {
-				Debug.Log("Player was caught!");
+				GameManager.Instance.LoseGame();
+				_stateMachine.enabled = false;
 			}
 		}
 	}
 	
 	protected virtual void HandleStateChange(string previousStateId, string nextStateId) {
+		Debug.Log("State change from: " + previousStateId + " to: " + nextStateId);
 		_animator.SetTrigger(stateIdToTriggerMap[nextStateId]);
+	}
+	
+	protected void OnTriggerEnter2D(Collider2D other) {
+		// player tipped cow
+		GameManager.Instance.WinGame();
+		_stateMachine.enabled = false;
+		_animator.SetTrigger("TippedOver");
 	}
 }

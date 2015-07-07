@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using DT.TweakableVariables;
 
@@ -27,7 +27,11 @@ public class PlayerMovementController : MonoBehaviour {
 	}
 	
 	public void Update() {
-		currentXAxis = Input.GetAxis(HORIZONTAL_AXIS_KEY);
+		if (GameManager.Instance.CurrentState != GameState.GAME) {
+			currentXAxis = 0.0f;
+		} else {
+			currentXAxis = Input.GetAxis(HORIZONTAL_AXIS_KEY);
+		}
 		
 		_animator.SetFloat("SneakingSpeed", currentXAxis);
 		_animator.SetBool("BeingInconspicuous", currentXAxis <= 0.001);
